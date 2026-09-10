@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Delegate + Verify Workflow</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f5;
+    --panel: #ffffff;
+    --text: #1a1a1a;
+    --muted: #5f5f5f;
+    --border: #e0ddd6;
+    --accent: #b5651d;
+    --accent-hover: #9a5518;
+    --code-bg: #2b2b28;
+    --code-text: #eae6df;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --panel: #1f1f24;
+      --text: #ececec;
+      --muted: #a0a0a8;
+      --border: #33333a;
+      --accent: #d98a4a;
+      --accent-hover: #e69a5a;
+      --code-bg: #0f0f12;
+      --code-text: #e8e6e0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    color: var(--muted);
+    margin: 0 0 28px;
+    font-size: 0.95rem;
+  }
+  .intro {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+  }
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+  }
+  button#copy-btn {
+    appearance: none;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  button#copy-btn:hover { background: var(--accent-hover); }
+  button#copy-btn:active { transform: scale(0.97); }
+  button#copy-btn.copied {
+    background: #2e7d32;
+    border-color: #2e7d32;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 10px;
+    padding: 20px 22px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  code {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  footer {
+    margin-top: 24px;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Delegate + Verify Workflow</h1>
+  <p class="subtitle">A reusable prompt block for fresh agents/environments with no skill installed.</p>
+
+  <div class="intro">
+    For a completely fresh agent/environment with no skill available, here's a
+    copy-pasteable instruction block that reproduces the exact workflow we used.
+  </div>
+
+  <div class="toolbar">
+    <button id="copy-btn" onclick="copyPrompt()">Copy prompt</button>
+  </div>
+
+  <pre id="prompt-text"><code>For this task, use this workflow — you (the orchestrator) never implement code directly:
+
+1. Track it: create a task list with these stages — spec, dispatch, verify, review, ship.
+2. Isolate: enter a fresh git worktree (never edit the shared checkout).
+3. Recon yourself: read the real current code for every file you'll touch — never
+   paraphrase from memory.
+4. Write a self-contained spec to a scratch file: exact file/line citations, before/after
+   examples, explicit out-of-scope list, a "don't over-engineer" guardrail, exact
+   verify commands (real venv/interpreter paths, not bare `python`/`pytest`), and an
+   explicit "no git commit/push" instruction for the implementer.
+5. Dispatch implementation to Codex CLI directly (not any read-only Codex skill):
+   `codex exec -C &lt;worktree&gt; -s workspace-write --skip-git-repo-check -o &lt;out&gt;/last-message.txt --json &lt; &lt;prompt-file&gt; &gt; &lt;out&gt;/events.jsonl 2&gt; &lt;out&gt;/stderr.log`
+   run via Bash with run_in_background: true. Never trust the immediate tool return —
+   wait for the real completion notification, then read last-message.txt.
+6. Independently verify yourself — never trust Codex's self-report:
+   - git diff --stat first: confirm only allowed files changed.
+   - Read the full diff yourself.
+   - Re-run the exact verify commands yourself, for real (Codex's own sandbox often
+     can't reach the network or bind sockets — that's a dispatch environment limit,
+     not proof the code is broken; re-check in your own environment).
+   - If it's observable (CLI command, endpoint, extension), exercise it for real once.
+   - If you find a real bug, dispatch a new, narrowly-scoped Codex fix — don't patch
+     it yourself.
+7. Dispatch a fresh, independently-scoped Agent for adversarial review — never reuse
+   the implementer. Tell it explicitly: re-derive correctness from real code (the spec
+   can be wrong), specific things to hunt for, and to fix anything real within its
+   allowed files before reporting back.
+8. Ship: commit with a message file (git commit -F), write a PR body to a file if
+   there's a remote, push, open the PR. Do NOT merge without the user's explicit
+   go-ahead — a prior "merge it" authorizes that PR, not future ones.
+
+Never implement directly yourself. Codex and the review agent produce diffs; you do
+recon, spec-writing, verification, and all git operations.</code></pre>
+
+  <footer>Saved locally at ~/.claude/prompts/index.html</footer>
+</div>
+
+<script>
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').innerText;
+  const btn = document.getElementById('copy-btn');
+  navigator.clipboard.writeText(text).then(() => {
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = original;
+      btn.classList.remove('copied');
+    }, 1500);
+  }).catch(() => {
+    btn.textContent = 'Copy failed — select manually';
+  });
+}
+</script>
+</body>
+</html>
